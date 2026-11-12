@@ -157,7 +157,46 @@
       el('percentual').textContent = porcentagem((1 - regra.fator) * 100);
       el('liberado').textContent = porcentagem(regra.fator * 100);
     }
-    el('entrada').addEventListener('input', atualizar);
+    // Máscara monetária brasileira: 20000 -> 20.000,00.
+    // Formata em tempo real e mantém o cursor na parte editada do valor.
+    function formatarEnquantoDigita(evento) {
+      const campo = evento.target;
+      const texto = campo.value;
+      const cursor = campo.selectionStart ?? texto.length;
+      const antesCursor = texto.slice(0, cursor);
+      const virgula = texto.lastIndexOf(',');
+      const inteiroTexto = virgula >= 0 ? texto.slice(0, virgula) : texto;
+      const inteiroDigitos = inteiroTexto.replace(/\D/g, '');
+      const decimais = virgula >= 0 ? texto.slice(virgula + 1).replace(/\D/g, '').slice(0, 2) : '';
+      if (!inteiroDigitos && !decimais) {
+        campo.value = '';
+        atualizar();
+        return;
+      }
+      const valorInteiro = Number(inteiroDigitos || '0');
+      if (!Number.isFinite(valorInteiro) || valorInteiro > 1000000000) {
+        atualizar();
+        return;
+      }
+      const parteInteira = new Intl.NumberFormat('pt-BR', {maximumFractionDigits: 0}).format(valorInteiro);
+      const formatado = parteInteira + ',' + (decimais + '00').slice(0, 2);
+      campo.value = formatado;
+      const digitosAntes = antesCursor.replace(/\D/g, '').length;
+      let novoCursor = 0, contagem = 0;
+      if (virgula >= 0 && cursor > virgula) {
+        novoCursor = parteInteira.length + 1 + Math.min(2, antesCursor.slice(antesCursor.lastIndexOf(',') + 1).replace(/\D/g, '').length);
+      } else {
+        // Deixa o cursor antes da vírgula ao inserir números inteiros.
+        while (novoCursor < parteInteira.length && contagem < digitosAntes) {
+          if (/\d/.test(parteInteira[novoCursor])) contagem++;
+          novoCursor++;
+        }
+        if (digitosAntes >= inteiroDigitos.length) novoCursor = parteInteira.length;
+      }
+      campo.setSelectionRange(novoCursor, novoCursor);
+      atualizar();
+    }
+    el('entrada').addEventListener('input', formatarEnquantoDigita);
     el('entrada').addEventListener('blur', () => {
       const valor = lerValorBR(el('entrada').value);
       if (Number.isFinite(valor)) el('entrada').value = numero(valor);
