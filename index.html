@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#102B4E" />
-  <meta name="description" content="Simulador de crédito Mirar Prime para parceiros." />
+  <meta name="description" content="Simulador demonstrativo de empréstimo com cartão de crédito, tabelas A a M (exceto N e O), de 2 a 12 parcelas." />
   <title>Mirar Prime | Simulação de Empréstimo</title>
   <style>
     :root { color-scheme: light; --cor:#102B4E; --cor-escura:#081B35; --texto:#20252a; --borda:#d7dce1; --fundo:#f3f5f7; --branco:#fff; --verde:#23b49d; }
@@ -36,10 +36,10 @@
     .informacoes { margin:23px 0 0; padding:19px 22px; border:1px solid #e5e8eb; background:#fafbfc; border-radius:4px; }
     .informacoes h2 { font-size:16px; margin:0 0 12px; }
     .resumo { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px; }
-    .resumo-parceiro { grid-template-columns:repeat(2,minmax(0,1fr)); }
-    .resumo-parceiro strong { color:#102B4E; font-size:23px; }
     .resumo span { display:block; color:#64707c; font-size:13px; margin-bottom:5px; }
     .resumo strong { font-size:18px; overflow-wrap:anywhere; }
+    .resumo-parceiro { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .aviso-estimativa {font-size:12px;color:#6a4a10;margin:12px 0 0;line-height:1.5;}
     .nota { font-size:13px; line-height:1.55; color:#606a74; margin:18px 0 0; }
     .rodape { text-align:center; font-size:13px; line-height:1.5; color:#6b747c; padding:24px 0; }
     .ajuda { font-weight:normal; color:#6b747c; font-size:12px; margin-left:7px; }
@@ -72,25 +72,25 @@
       </div>
       <div class="campo">
         <label for="entrada" id="entrada-label">Limite do cartão: *</label>
-        <input class="input" id="entrada" inputmode="decimal" autocomplete="off" value="15.000,00" />
+        <input class="input" id="entrada" inputmode="decimal" autocomplete="off" value="15.000,00" aria-describedby="observacao" />
       </div>
       <div class="campo">
         <label for="saida" id="saida-label">Valor à receber:</label>
-        <output class="saida" id="saida">12.377,26</output>
+        <output class="saida" id="saida">11.906,65</output>
       </div>
       <div class="campo">
         <label for="parcelas">Parcela *</label>
-        <select id="parcelas"><option value="12">12 X</option></select>
+        <select id="parcelas"><option value="2">2 X</option><option value="3">3 X</option><option value="4">4 X</option><option value="5">5 X</option><option value="6">6 X</option><option value="7">7 X</option><option value="8">8 X</option><option value="9">9 X</option><option value="10">10 X</option><option value="11">11 X</option><option value="12" selected>12 X</option></select>
       </div>
       <div class="campo">
         <label for="tabela">Tabela</label>
         <select id="tabela">
-          <option value="K">K</option><option value="L">L</option><option value="M">M</option><option value="N">N</option><option value="O" selected>O</option>
+          <option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option><option value="E">E</option><option value="F">F</option><option value="G">G</option><option value="H">H</option><option value="I">I</option><option value="J">J</option><option value="K">K</option><option value="L">L</option><option value="M" selected>M</option>
         </select>
       </div>
       <div class="campo">
         <span class="rotulo">Total à Pagar</span>
-        <div class="resultado"><strong id="total">R$ 15.000,00</strong> (CET informado: <span id="cet">1,77%</span>)</div>
+        <div class="resultado"><strong id="total">R$ 15.000,00</strong> (CET informado: <span id="cet">2,16%</span>)</div>
       </div>
       <div class="campo">
         <span class="rotulo">Valor da Parcela</span>
@@ -99,27 +99,64 @@
       <div class="informacoes" aria-live="polite">
         <h2>Comissão do parceiro</h2>
         <div class="resumo resumo-parceiro">
-          <div><span>Comissão a receber</span><strong id="comissaoParceiro">R$ 0,00</strong></div>
-          <div><span>Percentual do parceiro</span><strong id="percentualParceiro">0,00%</strong></div>
+          <div><span>Comissão a receber (50%)</span><strong id="comissao">R$ 354,22</strong></div>
+          <div><span>Percentual do parceiro</span><strong id="comissaoPercentual">2,975%</strong></div>
         </div>
+        <p class="aviso-estimativa" id="avisoEstimativa" hidden>Estimativa para este prazo: os valores e o CET desta tabela não foram fornecidos para esta quantidade de parcelas. Confira a simulação oficial antes de oferecer crédito.</p>
       </div>
     </section>
   </main>
   <script>
     'use strict';
-    // Fatores observados em simulações de 12 parcelas (valor recebido / limite).
-    // Substitua por parâmetros oficiais se a instituição fornecer sua tabela de cálculo.
-    const regras = Object.freeze({
-      K: { fator: 10228.82 / 13500, cet: 2.66, comissao: 10.20 },
-      L: { fator: 11794.31 / 15000, cet: 2.26, comissao: 6.80 },
-      M: { fator: 11906.65 / 15000, cet: 2.16, comissao: 5.95 },
-      N: { fator: 12137.89 / 15000, cet: 1.96, comissao: 4.25 },
-      O: { fator: 12377.26 / 15000, cet: 1.77, comissao: 3.83 }
-    });
+     // A-J em 12x: valor informado = dinheiro líquido que o cliente deseja receber.
+     // Os totais e CET abaixo foram extraídos das capturas para R$ 15.000,00 líquidos.
+     // fator12 = líquido / total a pagar. A comissão é percentual do líquido.
+     // K-M em 12x: fatores das capturas anteriores. Apenas K tem referências de 2x a 11x.
+     // Outros prazos para A-J e L-M são ESTIMATIVAS, nunca valores oficiais.
+     const regras = Object.freeze({
+       A: { fator12: 15000/27897, cet12: 7.16, comissao: .3825 },
+       B: { fator12: 15000/26997, cet12: 6.66, comissao: .3400 },
+       C: { fator12: 15000/26097, cet12: 6.16, comissao: .2975 },
+       D: { fator12: 15000/25197, cet12: 5.66, comissao: .2635 },
+       E: { fator12: 15000/24297, cet12: 5.16, comissao: .2125 },
+       F: { fator12: 15000/23397, cet12: 4.66, comissao: .1955 },
+       G: { fator12: 15000/22497, cet12: 4.16, comissao: .1870 },
+       H: { fator12: 15000/21597, cet12: 3.66, comissao: .1700 },
+       I: { fator12: 15000/20697, cet12: 3.16, comissao: .1275 },
+       J: { fator12: 15000/20337, cet12: 2.96, comissao: .1105 },
+       K: { fator12: 10228.82/13500, cet12: 2.66, comissao: .1020 },
+       L: { fator12: 11794.31/15000, cet12: 2.26, comissao: .0680 },
+       M: { fator12: 11906.65/15000, cet12: 2.16, comissao: .0595 }
+     });
+     const prazoK = Object.freeze({
+       2: {receber:15304.56,cet:15.34},
+       3: {receber:15304.56,cet:10.23},
+       4: {receber:15304.56,cet:7.67},
+       5: {receber:15281.17,cet:6.18},
+       6: {receber:15281.17,cet:5.15},
+       7: {receber:15246.23,cet:4.45},
+       8: {receber:15246.23,cet:3.90},
+       9: {receber:15211.44,cet:3.50},
+       10: {receber:15211.44,cet:3.15},
+       11: {receber:15153.81,cet:2.91},
+       12: {receber:15153.81,cet:2.66}
+     });
+     function obterRegra(tabela,prazo) {
+       const regra = regras[tabela];
+       if(prazo===12) return {fator:regra.fator12, cet:regra.cet12, comissao:regra.comissao, estimado:false};
+       const diferencaK = (prazoK[prazo].receber - prazoK[12].receber) / 20000;
+       return {
+         fator:tabela==='K'? prazoK[prazo].receber/20000 : regra.fator12 + diferencaK,
+         cet:tabela==='K'?prazoK[prazo].cet:null,
+         comissao:regra.comissao,
+         estimado:tabela!=='K'
+       };
+     }
     const el = id => document.getElementById(id);
     const moeda = n => new Intl.NumberFormat('pt-BR', { style:'currency', currency:'BRL' }).format(n);
     const numero = n => new Intl.NumberFormat('pt-BR', { minimumFractionDigits:2, maximumFractionDigits:2 }).format(n);
     const porcentagem = n => numero(n) + '%';
+    const percentualComissao = n => new Intl.NumberFormat('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:3}).format(n) + '%';
     const arredonda = n => Math.round((n + Number.EPSILON) * 100) / 100;
     function lerValorBR(texto) {
       const limpo = String(texto).replace(/\s/g,'').replace(/R\$/g,'');
@@ -133,29 +170,28 @@
       return Number.isFinite(valor) && valor >= 0 ? valor : NaN;
     }
     function atualizar() {
-      const regra = regras[el('tabela').value];
+      const prazo = Number(el('parcelas').value);
+      const regra = obterRegra(el('tabela').value, prazo);
       const porLimite = el('modo').checked;
       const entrada = lerValorBR(el('entrada').value);
       const valido = Number.isFinite(entrada) && entrada <= 1000000000;
+      el('avisoEstimativa').hidden = !regra.estimado;
       el('entrada').setAttribute('aria-invalid', String(!valido));
       el('entrada-label').textContent = porLimite ? 'Limite do cartão: *' : 'Valor desejado a receber: *';
       el('saida-label').textContent = porLimite ? 'Valor a receber:' : 'Limite necessário:';
       if (!valido) {
-        for (const id of ['saida','total','parcela','comissaoParceiro','percentualParceiro']) el(id).textContent = '—';
-        el('cet').textContent = porcentagem(regra.cet);
+        for (const id of ['saida','total','parcela','comissao','comissaoPercentual']) el(id).textContent = '—';
+        el('cet').textContent = regra.cet == null ? 'não informado' : porcentagem(regra.cet);
         return;
       }
       const limite = porLimite ? entrada : arredonda(entrada / regra.fator);
-      const recebido = porLimite ? arredonda(limite * regra.fator) : arredonda(limite * regra.fator);
-      // O parceiro recebe 50% da comissao sobre o valor liquido da operacao.
-      const percentualParceiro = regra.comissao / 2;
-      const valorComissaoParceiro = arredonda(recebido * percentualParceiro / 100);
+      const recebido = porLimite ? arredonda(limite * regra.fator) : entrada;
       el('saida').textContent = numero(porLimite ? recebido : limite);
       el('total').textContent = moeda(limite);
-      el('cet').textContent = porcentagem(regra.cet);
-      el('parcela').textContent = moeda(arredonda(limite / 12));
-      el('comissaoParceiro').textContent = moeda(valorComissaoParceiro);
-      el('percentualParceiro').textContent = porcentagem(percentualParceiro);
+      el('cet').textContent = regra.cet == null ? 'não informado' : porcentagem(regra.cet);
+      el('parcela').textContent = moeda(arredonda(limite / prazo));
+      el('comissao').textContent = moeda(arredonda(recebido * regra.comissao / 2));
+      el('comissaoPercentual').textContent = percentualComissao(regra.comissao * 50);
     }
     // Máscara monetária brasileira: 20000 -> 20.000,00.
     // Formata em tempo real e mantém o cursor na parte editada do valor.
@@ -203,11 +239,12 @@
       atualizar();
     });
     el('tabela').addEventListener('change', atualizar);
+    el('parcelas').addEventListener('change', atualizar);
     el('modo').addEventListener('change', () => {
       // Preserva o mesmo limite na troca de modo, convertendo o campo automaticamente.
       const atual = lerValorBR(el('entrada').value);
       if (Number.isFinite(atual)) {
-        const fator = regras[el('tabela').value].fator;
+        const fator = obterRegra(el('tabela').value,Number(el('parcelas').value)).fator;
         el('entrada').value = numero(el('modo').checked ? arredonda(atual / fator) : arredonda(atual * fator));
       }
       atualizar();
