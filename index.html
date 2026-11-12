@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#102B4E" />
-  <meta name="description" content="Simulador demonstrativo de empréstimo com cartão de crédito, tabelas K a O, em 12 parcelas." />
+  <meta name="description" content="Simulador de crédito Mirar Prime para parceiros." />
   <title>Mirar Prime | Simulação de Empréstimo</title>
   <style>
     :root { color-scheme: light; --cor:#102B4E; --cor-escura:#081B35; --texto:#20252a; --borda:#d7dce1; --fundo:#f3f5f7; --branco:#fff; --verde:#23b49d; }
@@ -36,6 +36,8 @@
     .informacoes { margin:23px 0 0; padding:19px 22px; border:1px solid #e5e8eb; background:#fafbfc; border-radius:4px; }
     .informacoes h2 { font-size:16px; margin:0 0 12px; }
     .resumo { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px; }
+    .resumo-parceiro { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .resumo-parceiro strong { color:#102B4E; font-size:23px; }
     .resumo span { display:block; color:#64707c; font-size:13px; margin-bottom:5px; }
     .resumo strong { font-size:18px; overflow-wrap:anywhere; }
     .nota { font-size:13px; line-height:1.55; color:#606a74; margin:18px 0 0; }
@@ -70,7 +72,7 @@
       </div>
       <div class="campo">
         <label for="entrada" id="entrada-label">Limite do cartão: *</label>
-        <input class="input" id="entrada" inputmode="decimal" autocomplete="off" value="15.000,00" aria-describedby="observacao" />
+        <input class="input" id="entrada" inputmode="decimal" autocomplete="off" value="15.000,00" />
       </div>
       <div class="campo">
         <label for="saida" id="saida-label">Valor à receber:</label>
@@ -94,28 +96,25 @@
         <span class="rotulo">Valor da Parcela</span>
         <output id="parcela" class="parcela">R$ 1.250,00</output>
       </div>
-      <div class="informacoes">
-        <h2>Resumo da simulação</h2>
-        <div class="resumo">
-          <div><span>Desconto estimado</span><strong id="desconto">R$ 2.622,74</strong></div>
-          <div><span>Taxa de desconto sobre o limite</span><strong id="percentual">17,48%</strong></div>
-          <div><span>Percentual liberado</span><strong id="liberado">82,52%</strong></div>
+      <div class="informacoes" aria-live="polite">
+        <h2>Comissão do parceiro</h2>
+        <div class="resumo resumo-parceiro">
+          <div><span>Comissão a receber</span><strong id="comissaoParceiro">R$ 0,00</strong></div>
+          <div><span>Percentual do parceiro</span><strong id="percentualParceiro">0,00%</strong></div>
         </div>
       </div>
-      <p class="nota" id="observacao">Simulador demonstrativo baseado em exemplos reais informados para as tabelas K, L, M, N e O em <strong>12 parcelas</strong>. Os fatores foram estimados a partir dos valores exibidos, e não representam acesso às regras internas da instituição. Outras quantidades de parcelas não foram disponibilizadas por falta de dados. O CET mostrado é apenas o percentual exibido nas capturas de tela e <strong>não foi recalculado</strong> nem validado como custo efetivo total da operação. Os valores não constituem proposta de crédito.</p>
     </section>
-    <footer class="rodape">Simulador demonstrativo • Funciona localmente e no GitHub Pages • Nenhum dado é enviado a servidores</footer>
   </main>
   <script>
     'use strict';
     // Fatores observados em simulações de 12 parcelas (valor recebido / limite).
     // Substitua por parâmetros oficiais se a instituição fornecer sua tabela de cálculo.
     const regras = Object.freeze({
-      K: { fator: 10228.82 / 13500, cet: 2.66 },
-      L: { fator: 11794.31 / 15000, cet: 2.26 },
-      M: { fator: 11906.65 / 15000, cet: 2.16 },
-      N: { fator: 12137.89 / 15000, cet: 1.96 },
-      O: { fator: 12377.26 / 15000, cet: 1.77 }
+      K: { fator: 10228.82 / 13500, cet: 2.66, comissao: 10.20 },
+      L: { fator: 11794.31 / 15000, cet: 2.26, comissao: 6.80 },
+      M: { fator: 11906.65 / 15000, cet: 2.16, comissao: 5.95 },
+      N: { fator: 12137.89 / 15000, cet: 1.96, comissao: 4.25 },
+      O: { fator: 12377.26 / 15000, cet: 1.77, comissao: 3.83 }
     });
     const el = id => document.getElementById(id);
     const moeda = n => new Intl.NumberFormat('pt-BR', { style:'currency', currency:'BRL' }).format(n);
@@ -142,20 +141,21 @@
       el('entrada-label').textContent = porLimite ? 'Limite do cartão: *' : 'Valor desejado a receber: *';
       el('saida-label').textContent = porLimite ? 'Valor a receber:' : 'Limite necessário:';
       if (!valido) {
-        for (const id of ['saida','total','parcela','desconto','percentual','liberado']) el(id).textContent = '—';
+        for (const id of ['saida','total','parcela','comissaoParceiro','percentualParceiro']) el(id).textContent = '—';
         el('cet').textContent = porcentagem(regra.cet);
         return;
       }
       const limite = porLimite ? entrada : arredonda(entrada / regra.fator);
       const recebido = porLimite ? arredonda(limite * regra.fator) : arredonda(limite * regra.fator);
-      const totalDesconto = arredonda(limite - recebido);
+      // O parceiro recebe 50% da comissao sobre o valor liquido da operacao.
+      const percentualParceiro = regra.comissao / 2;
+      const valorComissaoParceiro = arredonda(recebido * percentualParceiro / 100);
       el('saida').textContent = numero(porLimite ? recebido : limite);
       el('total').textContent = moeda(limite);
       el('cet').textContent = porcentagem(regra.cet);
       el('parcela').textContent = moeda(arredonda(limite / 12));
-      el('desconto').textContent = moeda(totalDesconto);
-      el('percentual').textContent = porcentagem((1 - regra.fator) * 100);
-      el('liberado').textContent = porcentagem(regra.fator * 100);
+      el('comissaoParceiro').textContent = moeda(valorComissaoParceiro);
+      el('percentualParceiro').textContent = porcentagem(percentualParceiro);
     }
     // Máscara monetária brasileira: 20000 -> 20.000,00.
     // Formata em tempo real e mantém o cursor na parte editada do valor.
