@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#102B4E" />
-  <meta name="description" content="Simulador demonstrativo de empréstimo com cartão de crédito, tabelas A a M (exceto N e O), de 2 a 12 parcelas." />
+  <meta name="description" content="Simulador Mirar Prime para parceiros, tabelas A a M, de 2 a 12 parcelas." />
   <title>Mirar Prime | Simulação de Empréstimo</title>
   <style>
     :root { color-scheme: light; --cor:#102B4E; --cor-escura:#081B35; --texto:#20252a; --borda:#d7dce1; --fundo:#f3f5f7; --branco:#fff; --verde:#23b49d; }
@@ -38,7 +38,18 @@
     .resumo { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px; }
     .resumo span { display:block; color:#64707c; font-size:13px; margin-bottom:5px; }
     .resumo strong { font-size:18px; overflow-wrap:anywhere; }
-    .resumo-parceiro { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .resumo-parceiro { grid-template-columns:repeat(3,minmax(0,1fr)); }
+    .comissao-grupo + .comissao-grupo { border-top:1px solid #d9e0e8; padding-top:17px; margin-top:18px; }
+    .informacoes h2 { color:#102B4E; font-size:18px; margin-bottom:15px; }
+    .resumo-parceiro strong { font-size:21px; color:#102B4E; }
+    .rodape-site { background:#081B35; color:#fff; padding:26px max(24px,calc((100% - 1120px)/2)); }
+    .rodape-conteudo { max-width:1120px; margin:auto; display:grid; grid-template-columns:minmax(220px,1fr) minmax(0,1.8fr); gap:30px; align-items:start; }
+    .rodape-bloco { display:flex; flex-direction:column; gap:7px; }
+    .rodape-bloco:last-child { text-align:right; }
+    .rodape-titulo { font-size:14px; color:#fff; font-weight:600; }
+    .rodape-site a { font-size:13px; color:#d4e6ff; text-decoration:none; }
+    .rodape-site a:hover,.rodape-site a:focus-visible { text-decoration:underline; }
+
     .aviso-estimativa {font-size:12px;color:#6a4a10;margin:12px 0 0;line-height:1.5;}
     .nota { font-size:13px; line-height:1.55; color:#606a74; margin:18px 0 0; }
     .rodape { text-align:center; font-size:13px; line-height:1.5; color:#6b747c; padding:24px 0; }
@@ -54,6 +65,10 @@
       .campo label, .rotulo { text-align:left; }
       .resultado { font-size:17px; }
       .resumo { grid-template-columns:1fr; gap:14px; }
+      .rodape-conteudo { grid-template-columns:1fr; gap:20px; }
+      .rodape-bloco:last-child { text-align:left; }
+      .rodape-titulo { line-height:1.5; }
+
     }
   </style>
 </head>
@@ -97,15 +112,38 @@
         <output id="parcela" class="parcela">R$ 1.250,00</output>
       </div>
       <div class="informacoes" aria-live="polite">
-        <h2>Comissão do parceiro</h2>
-        <div class="resumo resumo-parceiro">
-          <div><span>Comissão a receber (50%)</span><strong id="comissao">R$ 354,22</strong></div>
-          <div><span>Percentual do parceiro</span><strong id="comissaoPercentual">2,975%</strong></div>
+        <div class="comissao-grupo">
+          <h2>Comissão Master</h2>
+          <div class="resumo resumo-parceiro">
+            <div><span>Tabela aplicada</span><strong id="tabelaMaster">M</strong></div>
+            <div><span>Taxa de comissão (sobre o líquido)</span><strong id="taxaMaster">2,975%</strong></div>
+            <div><span>Valor da comissão</span><strong id="valorMaster">R$ 354,22</strong></div>
+          </div>
+        </div>
+        <div class="comissao-grupo">
+          <h2>Comissão Outras Bandeiras</h2>
+          <div class="resumo resumo-parceiro">
+            <div><span>Tabela aplicada</span><strong id="tabelaOutras">M</strong></div>
+            <div><span>Taxa de comissão (sobre o líquido)</span><strong id="taxaOutras">2,550%</strong></div>
+            <div><span>Valor da comissão</span><strong id="valorOutras">R$ 303,62</strong></div>
+          </div>
         </div>
         <p class="aviso-estimativa" id="avisoEstimativa" hidden>Estimativa para este prazo: os valores e o CET desta tabela não foram fornecidos para esta quantidade de parcelas. Confira a simulação oficial antes de oferecer crédito.</p>
       </div>
     </section>
   </main>
+  <footer class="rodape-site">
+    <div class="rodape-conteudo">
+      <div class="rodape-bloco">
+        <div class="rodape-titulo">F7 Mirar Prime</div>
+        <a href="https://simulador.vipvision.com.br/" target="_blank" rel="noopener noreferrer">simulador.vipvision.com.br</a>
+      </div>
+      <div class="rodape-bloco">
+        <div class="rodape-titulo">Vip Vision Tech · Consultoria em Business Intelligence</div>
+        <a href="https://www.vipvision.com.br/" target="_blank" rel="noopener noreferrer">www.vipvision.com.br</a>
+      </div>
+    </div>
+  </footer>
   <script>
     'use strict';
      // A-J em 12x: valor informado = dinheiro líquido que o cliente deseja receber.
@@ -152,6 +190,13 @@
          estimado:tabela!=='K'
        };
      }
+    // Percentuais de comissão das outras bandeiras, conforme tabela fornecida.
+    // A remuneração de parceiros é calculada internamente sem exibir o rateio.
+    const outrasBandeiras = Object.freeze({
+      A:.3740, B:.3315, C:.2890, D:.2550, E:.2040,
+      F:.1870, G:.1785, H:.1615, I:.1190, J:.1020,
+      K:.0935, L:.0595, M:.0510
+    });
     const el = id => document.getElementById(id);
     const moeda = n => new Intl.NumberFormat('pt-BR', { style:'currency', currency:'BRL' }).format(n);
     const numero = n => new Intl.NumberFormat('pt-BR', { minimumFractionDigits:2, maximumFractionDigits:2 }).format(n);
@@ -180,7 +225,7 @@
       el('entrada-label').textContent = porLimite ? 'Limite do cartão: *' : 'Valor desejado a receber: *';
       el('saida-label').textContent = porLimite ? 'Valor a receber:' : 'Limite necessário:';
       if (!valido) {
-        for (const id of ['saida','total','parcela','comissao','comissaoPercentual']) el(id).textContent = '—';
+        for (const id of ['saida','total','parcela','valorMaster','taxaMaster','valorOutras','taxaOutras']) el(id).textContent = '—';
         el('cet').textContent = regra.cet == null ? 'não informado' : porcentagem(regra.cet);
         return;
       }
@@ -190,8 +235,15 @@
       el('total').textContent = moeda(limite);
       el('cet').textContent = regra.cet == null ? 'não informado' : porcentagem(regra.cet);
       el('parcela').textContent = moeda(arredonda(limite / prazo));
-      el('comissao').textContent = moeda(arredonda(recebido * regra.comissao / 2));
-      el('comissaoPercentual').textContent = percentualComissao(regra.comissao * 50);
+      const tabela = el('tabela').value;
+      const taxaMasterParceiro = regra.comissao / 2;
+      const taxaOutrasParceiro = outrasBandeiras[tabela] / 2;
+      el('tabelaMaster').textContent = tabela;
+      el('tabelaOutras').textContent = tabela;
+      el('taxaMaster').textContent = percentualComissao(taxaMasterParceiro * 100);
+      el('taxaOutras').textContent = percentualComissao(taxaOutrasParceiro * 100);
+      el('valorMaster').textContent = moeda(arredonda(recebido * taxaMasterParceiro));
+      el('valorOutras').textContent = moeda(arredonda(recebido * taxaOutrasParceiro));
     }
     // Máscara monetária brasileira: 20000 -> 20.000,00.
     // Formata em tempo real e mantém o cursor na parte editada do valor.
